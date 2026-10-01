@@ -1,0 +1,111 @@
+<template>
+    <div class="tl-item">
+        <button class="tl-toggle" title={item.expandLabel} aria-expanded={ariaExpanded} onclick={handleToggle}>
+            <lightning-icon icon-name={item.expandIcon} size="xx-small" class="dark-icon" alternative-text={item.expandLabel}>
+            </lightning-icon>
+        </button>
+
+        <div class="tl-rail">
+            <span class="icon-circle">
+                <lightning-icon icon-name={item.iconName} size="small" alternative-text={item.iconLabel}></lightning-icon>
+            </span>
+            <span class={lineClass}></span>
+        </div>
+
+        <div class="tl-body">
+            <div class="tl-header">
+                <template lwc:if={item.isTask}>
+                    <label class="slds-checkbox tl-checkbox">
+                        <input type="checkbox" checked={item.isClosed} onchange={handleComplete} />
+                        <span class="slds-checkbox_faux"></span>
+                        <span class="slds-assistive-text">Mark complete</span>
+                    </label>
+                </template>
+                <a href="#" class="tl-subject" title={item.subject} data-id={item.id} onclick={handleNavigate}>
+                    {item.subject}
+                </a>
+                <span class={item.dateClass}>{item.dateLabel}</span>
+                <div class="tl-menu menu-zone">
+                    <button class="circle-button" title="More actions" aria-haspopup="true" onclick={toggleMenu}>
+                        <lightning-icon icon-name="utility:down" size="xx-small" class="brand-icon" alternative-text="More actions">
+                        </lightning-icon>
+                    </button>
+                    <template lwc:if={menuOpen}>
+                        <div class="slds-dropdown slds-dropdown_right tl-dropdown">
+                            <ul class="slds-dropdown__list" role="menu">
+                                <li class="slds-dropdown__item" role="presentation">
+                                    <a href="#" role="menuitem" data-value="view" onclick={handleMenuPick}>
+                                        <span class="slds-truncate">View</span>
+                                    </a>
+                                </li>
+                                <li class="slds-dropdown__item" role="presentation">
+                                    <a href="#" role="menuitem" data-value="edit" onclick={handleMenuPick}>
+                                        <span class="slds-truncate">Edit</span>
+                                    </a>
+                                </li>
+                                <li class="slds-dropdown__item" role="presentation">
+                                    <a href="#" role="menuitem" data-value="delete" onclick={handleMenuPick}>
+                                        <span class="slds-truncate">Delete</span>
+                                    </a>
+                                </li>
+                            </ul>
+                        </div>
+                    </template>
+                </div>
+            </div>
+
+            <p class="tl-summary">{item.summaryPrefix}<template lwc:if={item.whoId}>{item.whoConnector}<a href="#" class="record-link" data-id={item.whoId} onclick={handleNavigate}>{item.whoName}</a></template>
+                <template lwc:if={item.showWhat}>{item.whatConnector}<a href="#" class="record-link" data-id={item.whatId} onclick={handleNavigate}>{item.whatName}</a>
+                </template>
+            </p>
+
+            <template lwc:if={item.expanded}>
+                <article class="tl-details">
+                    <ul class="tl-detail-grid">
+                        <template lwc:if={item.isEmail}>
+                            <li>
+                                <span class="tl-detail-label">From</span>
+                                <span class="slds-truncate">{item.ownerName}</span>
+                            </li>
+                            <li>
+                                <span class="tl-detail-label">To</span>
+                                <span class="slds-truncate">{item.whoName}</span>
+                            </li>
+                        </template>
+                        <template lwc:else>
+                            <li>
+                                <span class="tl-detail-label">Name</span>
+                                <span class="slds-truncate">{item.whoName}</span>
+                            </li>
+                            <li>
+                                <span class="tl-detail-label">Related To</span>
+                                <span class="slds-truncate">{item.whatName}</span>
+                            </li>
+                            <li>
+                                <span class="tl-detail-label">Due Date</span>
+                                <span>{item.dueDateLabel}</span>
+                            </li>
+                            <li>
+                                <span class="tl-detail-label">Status</span>
+                                <span>{item.status}</span>
+                            </li>
+                            <li>
+                                <span class="tl-detail-label">Priority</span>
+                                <span>{item.priority}</span>
+                            </li>
+                            <li>
+                                <span class="tl-detail-label">Assigned To</span>
+                                <span class="slds-truncate">{item.ownerName}</span>
+                            </li>
+                        </template>
+                    </ul>
+                    <span class="tl-detail-label">Description</span>
+                    <p class="tl-description">
+                        <template lwc:if={item.hasDescription}>{item.description}</template>
+                        <template lwc:else>—</template>
+                    </p>
+                </article>
+            </template>
+        </div>
+    </div>
+</template>

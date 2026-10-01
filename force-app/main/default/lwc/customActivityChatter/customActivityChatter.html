@@ -1,0 +1,19 @@
+<template>
+    <div class="tabs-card">
+        <div class="tab-bar" role="tablist">
+            <button role="tab" class={activityTabClass} aria-selected={activitySelected} data-tab="activity" onclick={selectTab}>Activity</button>
+            <button role="tab" class={chatterTabClass} aria-selected={chatterSelected} data-tab="chatter" onclick={selectTab}>Chatter
+            </button>
+        </div>
+
+        
+        <div class={activityPanelClass} role="tabpanel">
+            <c-custom-activity-timeline record-id={recordId} object-api-name={objectApiName}></c-custom-activity-timeline>
+        </div>
+        <template lwc:if={chatterLoaded}>
+            <div class={chatterPanelClass} role="tabpanel">
+                <c-custom-chatter-feed record-id={recordId}></c-custom-chatter-feed>
+            </div>
+        </template>
+    </div>
+</template>

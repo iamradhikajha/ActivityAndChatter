@@ -1,0 +1,287 @@
+<template>
+    <div class="chatter">
+        <div class="publisher">
+            <div class="pub-tabs" role="tablist">
+                <button class={postTabClass} role="tab" data-tab="post" onclick={selectPublisherTab}>Post</button>
+                <button class={pollTabClass} role="tab" data-tab="poll" onclick={selectPublisherTab}>Poll</button>
+                <button class={questionTabClass} role="tab" data-tab="question" onclick={selectPublisherTab}>
+                    Question
+                </button>
+                <span class="pub-tabs-fill"></span>
+            </div>
+
+            <div class="pub-body">
+                <template lwc:if={isPostTab}>
+                    <template lwc:if={publisherExpanded}>
+                        <textarea class="pub-textarea" placeholder="Share an update..." data-field="postBody" oninput={handlePublisherInput}></textarea>
+                    </template>
+                    <template lwc:else>
+                        <button class="pub-placeholder" onclick={expandPublisher}>Share an update...</button>
+                    </template>
+                </template>
+
+                <template lwc:if={isPollTab}>
+                    <textarea class="pub-textarea" placeholder="What would you like to ask?" data-field="pollQuestion" oninput={handlePublisherInput}></textarea>
+                    <template for:each={pollChoiceRows} for:item="choice">
+                        <div key={choice.key} class="poll-input-row">
+                            <label class="poll-input-label">{choice.label}</label>
+                            <input class="pub-input" type="text" value={choice.value} data-index={choice.index} oninput={handleChoiceInput}/>
+                        </div>
+                    </template>
+                    <template lwc:if={canAddChoice}>
+                        <button class="text-link add-choice" onclick={addChoice}>+ Add new choice</button>
+                    </template>
+                </template>
+
+                <template lwc:if={isQuestionTab}>
+                    <input class="pub-input pub-textarea" type="text" placeholder="What would you like to ask?" value={questionTitle} data-field="questionTitle" oninput={handlePublisherInput}/>
+                    <textarea class="pub-textarea pub-details" placeholder="If you have more to say, add details here..." data-field="questionDetails" oninput={handlePublisherInput}></textarea>
+                </template>
+                <button class="brand-pill" disabled={isPosting} onclick={handleShare}>{shareLabel}</button>
+            </div>
+        </div>
+        <div class="toolbar">
+            <div class="menu-zone sort-zone">
+                <button class="sort-button" title="Sort by" aria-haspopup="true" onclick={toggleSortMenu}>
+                    <lightning-icon icon-name="utility:sort" size="x-small" class="brand-icon" alternative-text="Sort by">
+                    </lightning-icon>
+                    <lightning-icon icon-name="utility:down" size="xx-small" class="brand-icon"></lightning-icon>
+                </button>
+                <template lwc:if={sortMenuOpen}>
+                    <div class="slds-dropdown slds-dropdown_left sort-dropdown">
+                        <ul class="slds-dropdown__list" role="menu">
+                            <li class="slds-dropdown__header" role="separator">
+                                <span>Sort by</span>
+                            </li>
+                            <template for:each={sortOptions} for:item="option">
+                                <li key={option.value} class="slds-dropdown__item" role="presentation">
+                                    <a href="#" role="menuitemradio" data-value={option.value} onclick={handleSortPick}>
+                                        <span class="slds-truncate sort-option">
+                                            <span class="sort-check">
+                                                <template lwc:if={option.selected}>
+                                                    <lightning-icon icon-name="utility:check" size="xx-small"></lightning-icon>
+                                                </template>
+                                            </span>
+                                            {option.label}
+                                        </span>
+                                    </a>
+                                </li>
+                            </template>
+                        </ul>
+                    </div>
+                </template>
+            </div>
+
+            <div class="search-box">
+                <lightning-icon icon-name="utility:search" size="x-small" class="search-icon"></lightning-icon>
+                <input class="search-input" type="search" placeholder="Search this feed..." value={searchTerm} oninput={handleSearchInput} onkeyup={handleSearchKeyup}/>
+                <template lwc:if={hasSearchTerm}>
+                    <button class="search-clear" title="Clear" onclick={clearSearch}>
+                        <lightning-icon icon-name="utility:clear" size="xx-small"></lightning-icon>
+                    </button>
+                </template>
+            </div>
+
+            <button class="circle-lg" title="Refresh this feed" onclick={handleRefresh}>
+                <lightning-icon icon-name="utility:refresh" size="x-small" class="brand-icon" alternative-text="Refresh">
+                </lightning-icon>
+            </button>
+        </div>
+
+        <div class="feed">
+            <template lwc:if={isLoading}>
+                <lightning-spinner alternative-text="Loading feed" size="small"></lightning-spinner>
+            </template>
+
+            <template lwc:if={error}>
+                <div class="slds-notify slds-notify_alert slds-alert_error" role="alert">
+                    <h2>{error}</h2>
+                </div>
+            </template>
+
+            <template lwc:if={hasItems}>
+                <ul>
+                    <template for:each={feedItems} for:item="item">
+                        <li key={item.id} class="feed-item">
+                            <div class="feed-main">
+                                <div class="feed-header">
+                                    <lightning-avatar src={item.actorPhotoUrl} fallback-icon-name="standard:user" alternative-text={item.actorName} variant="circle" size="medium" class="feed-avatar"></lightning-avatar>
+                                    <div class="feed-header-text">
+                                        <p class="feed-title">
+                                            <template for:each={item.headerSegments} for:item="seg">
+                                                <template lwc:if={seg.isRecord}>
+                                                    <a key={seg.key} href="#" class="record-link" data-record-id={seg.recordId} onclick={navigateToRecord}>{seg.text}</a>
+                                                </template>
+                                                <template lwc:elseif={seg.isLink}>
+                                                    <a key={seg.key} href={seg.url} target="_blank" rel="noopener" class="record-link">{seg.text}</a>
+                                                </template>
+                                                <template lwc:else>
+                                                    <span key={seg.key}>{seg.text}</span>
+                                                </template>
+                                            </template>
+                                        </p>
+                                        <p class="feed-time">{item.relativeDate}</p>
+                                    </div>
+                                    <template lwc:if={item.canDelete}>
+                                        <div class="menu-zone feed-menu">
+                                            <button class="circle-sm" title="More actions" data-id={item.id} onclick={toggleItemMenu}>
+                                                <lightning-icon icon-name="utility:down" size="xx-small" class="brand-icon" alternative-text="More actions">
+                                                </lightning-icon>
+                                            </button>
+                                            <template lwc:if={item.menuOpen}>
+                                                <div class="slds-dropdown slds-dropdown_right feed-dropdown">
+                                                    <ul class="slds-dropdown__list" role="menu">
+                                                        <li class="slds-dropdown__item" role="presentation">
+                                                            <a href="#" role="menuitem" data-id={item.id} onclick={handleDelete}>
+                                                                <span class="slds-truncate">Delete</span>
+                                                            </a>
+                                                        </li>
+                                                    </ul>
+                                                </div>
+                                            </template>
+                                        </div>
+                                    </template>
+                                </div>
+
+                                <template lwc:if={item.questionTitle}>
+                                    <p class="feed-question">{item.questionTitle}</p>
+                                </template>
+
+                                <template lwc:if={item.hasBody}>
+                                    <p class="feed-body">
+                                        <template for:each={item.bodySegments} for:item="seg">
+                                            <template lwc:if={seg.isRecord}>
+                                                <a key={seg.key} href="#" class="record-link" data-record-id={seg.recordId} onclick={navigateToRecord}>{seg.text}</a>
+                                            </template>
+                                            <template lwc:elseif={seg.isLink}>
+                                                <a key={seg.key} href={seg.url} target="_blank" rel="noopener" class="text-link">{seg.text}</a>
+                                            </template>
+                                            <template lwc:else>
+                                                <span key={seg.key}>{seg.text}</span>
+                                            </template>
+                                        </template>
+                                    </p>
+                                </template>
+
+                                <template lwc:if={item.hasChanges}>
+                                    <ul class="feed-changes">
+                                        <template for:each={item.changeItems} for:item="change">
+                                            <li key={change.key}>{change.text}</li>
+                                        </template>
+                                    </ul>
+                                </template>
+
+                                <template lwc:if={item.poll}>
+                                    <div class="poll">
+                                        <template for:each={item.poll.choices} for:item="choice">
+                                            <template lwc:if={item.poll.hasVoted}>
+                                                <div key={choice.id} class={choice.choiceClass}>
+                                                    <div class="poll-result-label">
+                                                        <span>{choice.text}</span>
+                                                        <span>{choice.percentLabel}</span>
+                                                    </div>
+                                                    <div class="poll-bar"><div class="poll-bar-fill" style={choice.barStyle}></div></div>
+                                                </div>
+                                            </template>
+                                            <template lwc:else>
+                                                <button key={choice.id} class="poll-vote" data-id={item.id} data-choice={choice.id} onclick={handleVote}>
+                                                    <span class="poll-radio"></span>{choice.text}
+                                                </button>
+                                            </template>
+                                        </template>
+                                        <p class="feed-meta">{item.poll.voteSummary}</p>
+                                    </div>
+                                </template>
+
+                                <template lwc:if={item.record}>
+                                    <div class="record-card">
+                                        <div class="record-card-body">
+                                            <lightning-icon icon-name={item.record.iconName} size="medium" alternative-text={item.record.type}>
+                                            </lightning-icon>
+                                            <span class="record-card-name">{item.record.name}</span>
+                                        </div>
+                                        <a href="#" class="record-card-footer" data-record-id={item.record.id} onclick={navigateToRecord}>
+                                            View more details
+                                        </a>
+                                    </div>
+                                </template>
+
+                                <template lwc:if={item.hasFiles}>
+                                    <div class="feed-files">
+                                        <template for:each={item.files} for:item="file">
+                                            <a key={file.id} href="#" class="feed-file" data-record-id={file.id} onclick={openFile}>
+                                                <lightning-icon icon-name="doctype:attachment" size="small"></lightning-icon>
+                                                <span>{file.title}</span>
+                                            </a>
+                                        </template>
+                                    </div>
+                                </template>
+                                <template lwc:if={item.linkUrl}>
+                                    <a href={item.linkUrl} target="_blank" rel="noopener" class="text-link feed-link">{item.linkName}</a>
+                                </template>
+
+                                <p class="feed-meta">
+                                    <template lwc:if={item.likeSummary}><span class="meta-part">{item.likeSummary}</span></template>
+                                    <template lwc:if={item.viewLabel}><span class="meta-part">{item.viewLabel}</span></template>
+                                </p>
+                            </div>
+
+                            <!-- Like / Comment -->
+                            <div class="feed-actions">
+                                <button class={item.likeClass} data-id={item.id} onclick={handleLike}>
+                                    <lightning-icon icon-name="utility:like" size="x-small" class="action-icon"></lightning-icon>
+                                    <span>{item.likeLabel}</span>
+                                </button>
+                                <button class="feed-action" data-id={item.id} onclick={handleCommentClick}>
+                                    <lightning-icon icon-name="utility:comments" size="x-small" class="action-icon"></lightning-icon>
+                                    <span>Comment</span>
+                                </button>
+                            </div>
+
+
+                            <div class="comments">
+                                <template lwc:if={item.showAllCommentsLink}>
+                                    <p class="all-comments">{item.allCommentsLabel}</p>
+                                </template>
+                                <template lwc:if={item.hasComments}>
+                                    <template for:each={item.comments} for:item="comment">
+                                        <div key={comment.id} class="comment">
+                                            <lightning-avatar  src={comment.userPhotoUrl}  fallback-icon-name="standard:user"  alternative-text={comment.userName}  variant="circle"  size="small"></lightning-avatar>
+                                            <div class="comment-content">
+                                                <p>
+                                                    <a href="#" class="record-link comment-author" data-record-id={comment.userId} onclick={navigateToRecord}>{comment.userName}</a>
+                                                </p>
+                                                <p class="comment-text">{comment.text}</p>
+                                                <p class="feed-time">{comment.relativeDate}</p>
+                                            </div>
+                                        </div>
+                                    </template>
+                                </template>
+
+                                <div class="comment-box">
+                                    <lightning-avatar src={currentUserPhotoUrl} fallback-icon-name="standard:user" alternative-text="You" variant="circle" size="small"></lightning-avatar>
+                                    <input class="comment-input" type="text" placeholder="Write a comment..." value={item.commentDraft} data-id={item.id} onfocus={handleCommentFocus} oninput={handleCommentInput} onkeydown={handleCommentKeydown}
+                                    />
+                                    <template lwc:if={item.hasCommentDraft}>
+                                        <button class="brand-pill brand-pill_small" data-id={item.id} onclick={handleCommentSubmit}>
+                                            Comment
+                                        </button>
+                                    </template>
+                                </div>
+                            </div>
+                        </li>
+                    </template>
+                </ul>
+
+                <template lwc:if={nextPageToken}>
+                    <div class="more-row">
+                        <button class="neutral-pill" disabled={isLoadingMore} onclick={handleLoadMore}>More</button>
+                    </div>
+                </template>
+            </template>
+            <template lwc:if={showEmpty}>
+                <p class="empty-text">{emptyMessage}</p>
+            </template>
+        </div>
+    </div>
+</template>

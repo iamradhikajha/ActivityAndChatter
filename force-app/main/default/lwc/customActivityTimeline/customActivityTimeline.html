@@ -1,0 +1,278 @@
+<template>
+    <div class="timeline-card">
+        <div class="action-bar">
+            <div class="action-group menu-zone">
+                <button class="action-main" title="New Task" onclick={handleNewTask}>
+                    <span class="icon-circle">
+                        <lightning-icon icon-name="standard:task" size="small" alternative-text="New Task" ></lightning-icon>
+                    </span> 
+                </button>
+                <button class={taskArrowClass} title="More Task Actions" aria-haspopup="true" data-menu="task" onclick={toggleMenu}>
+                    <lightning-icon icon-name="utility:down" size="xx-small" class="brand-icon" alternative-text="More Task Actions">
+                    </lightning-icon>
+                </button>
+                <template lwc:if={isTaskMenuOpen}>
+                    <div class="slds-dropdown slds-dropdown_left action-dropdown">
+                        <ul class="slds-dropdown__list" role="menu">
+                            <li class="slds-dropdown__item" role="presentation">
+                                <a href="#" role="menuitem" data-menu="task" data-value="new" onclick={handleMenuPick}>
+                                    <span class="slds-truncate">New Task</span>
+                                </a>
+                            </li>
+                            <li class="slds-dropdown__item" role="presentation">
+                                <a href="#" role="menuitem" data-menu="task" data-value="log" onclick={handleMenuPick}>
+                                    <span class="slds-truncate">Log a Completed Task</span>
+                                </a>
+                            </li>
+                        </ul>
+                    </div>
+                </template>
+            </div>
+
+            <!-- CALL -->
+        <div class="action-group menu-zone">
+            <button class="action-main" title="Log a Call">
+                <span class="icon-circle">
+                    <lightning-icon icon-name="standard:log_a_call" size="small" alternative-text="Log a Call"></lightning-icon>
+                </span>
+            </button>
+            <button class="action-arrow" title="More Call Actions" aria-haspopup="true">
+                <lightning-icon icon-name="utility:down" size="xx-small" class="brand-icon" alternative-text="More Call Actions"></lightning-icon>
+            </button>
+        </div>
+
+        <div class="action-group menu-zone">
+            <button class="action-main" title="New Event">
+            <span class="icon-circle">
+            <lightning-icon icon-name="standard:event" size="small" alternative-text="New Event"></lightning-icon></span>
+            </button>
+
+        <button class="action-arrow" title="More Event Actions" aria-haspopup="true">
+        <lightning-icon icon-name="utility:down" size="xx-small" class="brand-icon" alternative-text="More Event Actions"> </lightning-icon>
+        </button>
+    </div>
+          
+            <div class="action-group menu-zone">
+                <button class="action-main" title="Email" onclick={handleNewEmail}>
+                    <span class="icon-circle">
+                        <lightning-icon icon-name="standard:email" size="small" alternative-text="Email"></lightning-icon>
+                    </span>
+                </button>
+                <button class={emailArrowClass} title="More Email Actions" aria-haspopup="true" data-menu="email" onclick={toggleMenu}>
+                    <lightning-icon icon-name="utility:down" size="xx-small" class="brand-icon" alternative-text="More Email Actions">
+                    </lightning-icon>
+                </button>
+                <template lwc:if={isEmailMenuOpen}>
+                    <div class="slds-dropdown slds-dropdown_left action-dropdown">
+                        <ul class="slds-dropdown__list" role="menu">
+                            <li class="slds-dropdown__item" role="presentation">
+                                <a href="#" role="menuitem" data-menu="email" data-value="send" onclick={handleMenuPick}>
+                                    <span class="slds-truncate">Send Email</span>
+                                </a>
+                            </li>
+                            <li class="slds-dropdown__item" role="presentation">
+                                <a href="#" role="menuitem" data-menu="email" data-value="log" onclick={handleMenuPick}>
+                                    <span class="slds-truncate">Log an Email</span>
+                                </a>
+                            </li>
+                        </ul>
+                    </div>
+                </template>
+            </div>
+        </div>
+
+        <!-- Filters -->
+        <div class="filter-row">
+            <span class="filter-summary">Filters: {filterSummary}</span>
+            <button class="gear-button" title="Timeline Settings" onclick={toggleFilterPanel}>
+                <lightning-icon icon-name="utility:settings" size="x-small" class="brand-icon" alternative-text="Timeline Settings">
+                </lightning-icon>
+            </button>
+
+            <template lwc:if={showFilterPanel}>
+                <section class="slds-popover slds-popover_medium filter-popover" role="dialog" aria-label="Filter Timeline">
+                    <header class="slds-popover__header">
+                        <h2 class="slds-text-heading_small">Filter Timeline</h2>
+                    </header>
+                    <div class="slds-popover__body">
+                        <lightning-radio-group label="Date range" options={dateOptions} value={draftFilters.dateRange} data-filter="dateRange" onchange={handleFilterChange} class="slds-m-bottom_small"></lightning-radio-group>
+                        <lightning-radio-group label="Activities to show" options={ownerOptions} value={draftFilters.owner} data-filter="owner" onchange={handleFilterChange} class="slds-m-bottom_small"></lightning-radio-group>
+                        <lightning-radio-group label="Activity type" options={typeOptions} value={draftFilters.type} data-filter="type" onchange={handleFilterChange} ></lightning-radio-group>
+                    </div>
+                    <footer class="slds-popover__footer slds-grid slds-grid_align-spread">
+                        <lightning-button variant="base" label="Restore Defaults" onclick={handleRestoreDefaults}>
+                        </lightning-button>
+                        <div>
+                            <lightning-button label="Cancel" onclick={toggleFilterPanel} class="slds-m-right_x-small">
+                            </lightning-button>
+                            <lightning-button variant="brand" label="Apply" onclick={handleApplyFilters}>
+                            </lightning-button>
+                        </div>
+                    </footer>
+                </section>
+            </template>
+        </div>
+
+        <div class="link-row">
+            <a href="#" onclick={handleRefresh}>Refresh</a>
+            <span class="link-sep">•</span>
+            <a href="#" onclick={handleExpandAll}>{expandAllLabel}</a>
+            <span class="link-sep">•</span>
+            <a href="#" onclick={handleViewAll}>View All</a>
+        </div>
+
+        <div class="timeline-body">
+            <template lwc:if={isLoading}>
+                <lightning-spinner alternative-text="Loading activities" size="small"></lightning-spinner>
+            </template>
+
+            <template lwc:if={error}>
+                <div class="slds-notify slds-notify_alert slds-alert_error slds-m-bottom_small" role="alert">
+                    <h2>{error}</h2>
+                </div>
+            </template>
+
+            <!-- Upcoming & Overdue -->
+            <button class="section-header" aria-expanded={upcomingSection.ariaExpanded} data-key={upcomingSection.key} onclick={toggleSection}>
+                <lightning-icon icon-name={upcomingSection.chevron} size="xx-small" class="section-icon"></lightning-icon>
+                <span class="slds-truncate">Upcoming &amp; Overdue</span>
+            </button>
+            <template lwc:if={upcomingSection.isOpen}>
+                <template lwc:if={hasUpcoming}>
+                    <ul class="tl-list">
+                        <template for:each={upcomingItems} for:item="item">
+                            <li key={item.id}>
+                                <c-activity-timeline-item item={item} ontoggle={toggleItem} oncomplete={handleToggleComplete} onitemaction={handleItemAction}></c-activity-timeline-item>
+                            </li>
+                        </template>
+                    </ul>
+                </template>
+                <template lwc:else>
+                    <p class="empty-text">No activities to show. Get started by sending an email or creating a task.</p>
+                </template>
+            </template>
+
+            <template for:each={pastGroups} for:item="group">
+                <div key={group.key}>
+                    <button class="section-header" aria-expanded={group.ariaExpanded} data-key={group.key} onclick={toggleSection}>
+                        <lightning-icon icon-name={group.chevron} size="xx-small" class="section-icon"></lightning-icon>
+                        <span class="slds-truncate">{group.label}</span>
+                    </button>
+                    <template lwc:if={group.isOpen}>
+                        <ul class="tl-list">
+                            <template for:each={group.items} for:item="item">
+                                <li key={item.id}>
+                                    <c-activity-timeline-item item={item} ontoggle={toggleItem} oncomplete={handleToggleComplete} onitemaction={handleItemAction}></c-activity-timeline-item>
+                                </li>
+                            </template>
+                        </ul>
+                    </template>
+                </div>
+            </template>
+            <template lwc:if={hasMorePast}>
+                <div class="slds-text-align_center">
+                    <a href="#" class="view-more" onclick={handleViewAll}>View More</a>
+                </div>
+            </template>
+
+            <div class="info-bar">
+                <lightning-icon icon-name="utility:info" size="x-small" class="info-icon"></lightning-icon>
+                <span>To change what's shown, try changing your filters.</span>
+            </div>
+
+            <div class="show-all-row">
+                <button class="show-all-button" onclick={handleShowAllActivities}>Show All Activities</button>
+            </div>
+        </div>
+    </div>
+
+    <template lwc:if={showTaskModal}>
+        <section class={taskComposerClass} role="dialog" aria-label={taskModalTitle}>
+            <lightning-record-edit-form object-api-name="Task" record-id={editRecordId} onsubmit={handleTaskSubmit} onsuccess={handleTaskSuccess} onerror={handleTaskError}>
+                <header class="composer-header">
+                    <div class="composer-heading" onclick={handleComposerHeaderClick}>
+                        <lightning-icon icon-name="utility:task" size="x-small" class="composer-title-icon"></lightning-icon>
+                        <h2 class="composer-title">{taskModalTitle}</h2>
+                    </div>
+                    <div class="composer-controls">
+                        <button type="button" class="composer-control" title={taskMinimizeTitle} onclick={toggleMinimizeTask}>
+                            <lightning-icon icon-name="utility:minimize_window" size="x-small" class="brand-icon" alternative-text={taskMinimizeTitle}></lightning-icon>
+                        </button>
+                        <button type="button" class="composer-control" title={taskDockTitle} onclick={toggleDockTask}>
+                            <lightning-icon icon-name={taskDockIcon} size="x-small" class="brand-icon" alternative-text={taskDockTitle}>
+                            </lightning-icon>
+                        </button>
+                        <button type="button" class="composer-control" title="Close" onclick={closeTaskModal}>
+                            <lightning-icon icon-name="utility:close" size="x-small" class="brand-icon" alternative-text="Close">
+                            </lightning-icon>
+                        </button>
+                    </div>
+                </header>
+
+                <div class="composer-body">
+                    <lightning-messages></lightning-messages>
+                    <template lwc:if={isEditMode}>
+                        <lightning-input-field field-name="Subject" variant="label-stacked"></lightning-input-field>
+                        <lightning-input-field field-name="ActivityDate" variant="label-stacked"></lightning-input-field>
+                        <lightning-input-field field-name="WhoId" variant="label-stacked"></lightning-input-field>
+                        <lightning-input-field field-name="WhatId" variant="label-stacked"></lightning-input-field>
+                        <lightning-input-field field-name="OwnerId" variant="label-stacked"></lightning-input-field>
+                        <lightning-input-field field-name="Status" variant="label-stacked"></lightning-input-field>
+                        <lightning-input-field field-name="Priority" variant="label-stacked"></lightning-input-field>
+                        <lightning-input-field field-name="Description" variant="label-stacked"></lightning-input-field>
+                    </template>
+                    <template lwc:else>
+                        <lightning-input-field field-name="Subject" variant="label-stacked"></lightning-input-field>
+                        <lightning-input-field field-name="ActivityDate" variant="label-stacked" value={defaultTaskDate}>
+                        </lightning-input-field>
+                        <lightning-input-field field-name="WhoId" variant="label-stacked" value={defaultWhoId}>
+                        </lightning-input-field>
+                        <template lwc:if={canRelateWhat}>
+                            <lightning-input-field field-name="WhatId" variant="label-stacked" value={defaultWhatId}>
+                            </lightning-input-field>
+                        </template>
+                        <lightning-input-field field-name="OwnerId" variant="label-stacked" value={context.currentUserId}>
+                        </lightning-input-field>
+                        <lightning-input-field field-name="Status" variant="label-stacked" value={defaultTaskStatus}>
+                        </lightning-input-field>
+                    </template>
+                </div>
+
+                <footer class="composer-footer">
+                    <lightning-button variant="brand" type="submit" label="Save" class="composer-save" disabled={isSavingTask}></lightning-button>
+                </footer>
+            </lightning-record-edit-form>
+        </section>
+        <template lwc:if={showTaskBackdrop}>
+            <div class="slds-backdrop slds-backdrop_open" role="presentation"></div>
+        </template>
+    </template>
+
+    <template lwc:if={showEmailModal}>
+        <section role="dialog" tabindex="-1" aria-modal="true" aria-label={emailModalTitle} class="slds-modal slds-fade-in-open">
+            <div class="slds-modal__container">
+                <header class="slds-modal__header">
+                    <lightning-button-icon icon-name="utility:close" variant="bare-inverse" size="large" alternative-text="Close" class="slds-modal__close" onclick={closeEmailModal}></lightning-button-icon>
+                    <h2 class="slds-modal__title slds-hyphenate">{emailModalTitle}</h2>
+                </header>
+                <div class="slds-modal__content slds-p-around_medium">
+                    <lightning-input class="email-input" label="To" placeholder="name@example.com, other@example.com" value={emailDraft.to} data-field="to" onchange={handleEmailFieldChange}></lightning-input>
+                    <template lwc:if={isLogEmail}>
+                        <lightning-input class="email-input" type="date" label="Date" value={emailDraft.date} data-field="date" required onchange={handleEmailFieldChange}></lightning-input>
+                    </template>
+                    <template lwc:else>
+                        <lightning-input class="email-input" label="Cc" value={emailDraft.cc} data-field="cc" onchange={handleEmailFieldChange}></lightning-input>
+                    </template>
+                    <lightning-input class="email-input" label="Subject" value={emailDraft.subject} data-field="subject" required onchange={handleEmailFieldChange} ></lightning-input>
+                    <lightning-input-rich-text class="slds-m-top_small" label="Body" label-visible value={emailDraft.body} data-field="body" onchange={handleEmailFieldChange}></lightning-input-rich-text>
+                </div>
+                <footer class="slds-modal__footer">
+                    <lightning-button label="Cancel" onclick={closeEmailModal} class="slds-m-right_x-small">
+                    </lightning-button>
+                    <lightning-button variant="brand" label={emailSubmitLabel} disabled={isSendingEmail} onclick={handleEmailSubmit}></lightning-button>
+                </footer>
+            </div>
+        </section>
+        <div class="slds-backdrop slds-backdrop_open" role="presentation"></div>
+    </template>
+</template>
